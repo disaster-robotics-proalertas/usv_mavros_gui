@@ -54,7 +54,9 @@ There area few nodes available, we describe the below briefly. Recall that a ros
 
 1. The usv_mavros_gui_node starts a GUI which enables several features to edit waypoints and send them to the USV, including: selection of several map providers and maps. Deletion and addition of waypoints, sethome function and other features.   
 
-![alt text](https://raw.githubusercontent.com/vitoramj/SimpleRobotWebRemote/master/ScreenShot.png)  
+<p align="center">
+  <img src="/usv_mavros_gui.png" alt="gui_node view"/>
+</p>
 
 2. Another node available is the usv_mavros_gui_nogui_node, which loads a waypoint vector from file. The format of the file is as follows:  
 current_waypoint index  
