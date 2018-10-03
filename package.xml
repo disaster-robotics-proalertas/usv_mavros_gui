@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<package>
+  <name>usv_mavros_gui</name>
+  <version>0.0.1</version>
+  <description>The usv_mavros_gui package</description>
+
+  <maintainer email="vitor_mj@yahoo.com">Vitor A. M. Jorge</maintainer>
+
+  <license>LGPLv3</license>
+  <license>LGPLv2</license>
+  <license>MIT</license>
+
+  <url type="website">https://github.com/disaster-robotics-proalertas/usv_mavros_gui</url>
+
+  <!-- Author tags are optional, multiple are allowed, one per tag -->
+  <author email="vitor_mj@yahoo.com">Vitor A. M. Jorge</author>
+
+  <build_depend>qmake</build_depend>  
+  <build_depend>message_generation</build_depend>
+  <build_depend>mavros</build_depend>
+  <build_depend>mavros_msgs</build_depend>
+  <build_depend>mavros_extras</build_depend>
+  <build_depend>mavlink</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>qt5Core</build_depend>
+  <build_depend>qt5Qml</build_depend>
+  <build_depend>qt5Quick</build_depend>
+  <build_depend>qt5Network</build_depend>
+  <build_depend>qt5Location</build_depend>
+  <build_depend>qt5Positioning</build_depend>
+
+  <!-- Use buildtool_depend for build tool packages: -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>qmake</buildtool_depend>
+  <buildtool_depend>qtcreator</buildtool_depend>
+
+  <!-- Use run_depend for packages you need at runtime: -->
+  <run_depend>message_runtime</run_depend>
+  <run_depend>mavros</run_depend>
+  <run_depend>mavros_msgs</run_depend>  
+  <run_depend>mavlink</run_depend>   
+  <run_depend>message_runtime</run_depend>
+  <run_depend>qt5Core</run_depend>
+  <run_depend>qt5Qml</run_depend>
+  <run_depend>qt5Quick</run_depend>
+  <run_depend>qt5Network</run_depend>
+  <run_depend>qt5Location</run_depend>
+  <run_depend>qt5Positioning</run_depend>
+     
+  <!-- Use test_depend for packages you need only for testing: -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+  </export>
+  
+</package>
