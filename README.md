@@ -34,9 +34,9 @@ The code must be cloned from the git repository into a catkin workspace, which r
     `$ sudo apt-get install ros-kinetic-mavros_msgs`  
     `$ sudo apt-get install ros-kinetic-mavros_extras`  
 
-At this time, we recommend the installation of Qt>=5.9.1 using the online Qt intalation tool, even though with minor modifications it may be possible to compile the code using conventional Ubuntu qt packages. To try to compile everything using Qt5 base libraries do as follows (__We do not recommend this course of action.__)
+At this time, we recommend the installation of Qt>=5.9.1 using the online Qt intalation tool, even though with minor modifications it may be possible to compile the code using conventional Ubuntu qt packages. To try to compile everything using Qt5 base libraries do as follows __We do not recommend this course of action since QtQuick Controls 2.0 is not available in versions prior to Qt 5.7 and the map sliders will not work.__  
     `$ sudo apt-get install qtcreator`  
-    `$ sudo apt-get install libqt5positioning5-plugins libqt5positioning5 libqt5location5 libqt5location5-gles libqt5location5-plugins qtlocation5-dev qtpositioning5-dev`  
+    `$ sudo apt-get install libqt5positioning5-plugins libqt5positioning5 libqt5location5 libqt5location5-gles libqt5location5-plugins qtlocation5-dev qtpositioning5-dev qtdeclarative5-controls-plugin qtdeclarative5-qtpositioning-plugin qtdeclarative5-qtlocation-plugin`  
     
     __Note that depending on the Ubuntu system, gles versions of such packages may be required.__  
 
@@ -86,7 +86,7 @@ This class is responsible for the hardwork and can be used to set waypoints in y
 
 ## Limitations  
 
-1. Gui still does not work on default install and Qt 5.5.1 libs of Ubuntu Mate or Raspian due to failure in antialiazing Qt features.  
+1. Gui still does not work on default install and Qt prior to 5.7 libs of Ubuntu Mate or Raspian due to failure in antialiazing Qt features.  
 2. Raw servo control still does not work.  
 3. CMakelists.txt still does not install the package  
 
