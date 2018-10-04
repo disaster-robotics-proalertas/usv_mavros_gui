@@ -331,10 +331,11 @@ bool WaypointControl::overrideRCChannels(std::vector<RCManualOverride> values)
     else if(values.size() > 0 && values.size() <= 8){
         // Send override command
         for(int i = 0; i< numChannels; ++i)
-            s.channels[i] = values[i];
+            s.channels[i] = static_cast<unsigned short>(values[i]);
 
-        pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 1000);
+        pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 10);
         pub.publish(s);
+        ROS_INFO("Override/Relase sent");
     }
     else{
         ROS_ERROR("Number of servos is incprrect %d", static_cast<int>(values.size()));
@@ -398,9 +399,9 @@ bool WaypointControl::setMode(unsigned char mode, std::string custom)
         setModeService.request.base_mode = mode;
 
     if (client.call(setModeService)) {
-        ROS_INFO("Send OK %d Value:", setModeService.response.mode_sent);
+        ROS_INFO("SetMode OK %d Value:", setModeService.response.mode_sent);
     } else {
-        ROS_ERROR("Failed SetMode");
+        ROS_ERROR("Failed to SetMode");
         return false;
     }
     return setModeService.response.mode_sent;
@@ -414,7 +415,7 @@ void WaypointControl::waypointCallback(const mavros_msgs::WaypointList& wps)
         ROS_INFO("Waypoint %d received: lat %g, long %g", i, wps.waypoints[i].x_lat, wps.waypoints[i].y_long);
 }
 
-bool WaypointControl::setRCChannels(std::vector<unsigned char> values)
+bool WaypointControl::setRCChannels(std::vector<unsigned short> values)
 {
     // Check if number of channels is correct
     int numChannels=8;
@@ -431,10 +432,85 @@ bool WaypointControl::setRCChannels(std::vector<unsigned char> values)
 
         pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 1000);
         pub.publish(s);
+        ROS_INFO("Data sent to RC Channel[0]=%hu Channel[2]=%hu", values[0], values[2]);
+
     }
     else{
         ROS_ERROR("Number of servos is incprrect %d", static_cast<int>(values.size()));
         return false;
     }
 
+    return true;
+}
+
+bool WaypointControl::getParam(std::string param_id, int& intVal, double& realVal)
+{
+    ros::ServiceClient getParamService = n.serviceClient<mavros_msgs::ParamGet>("/mavros/param/get");
+    mavros_msgs::ParamGet param;
+    param.request.param_id = param_id;
+    if (getParamService.call(param)) {
+        ros::spinOnce();
+        ROS_INFO("Got Param %s response: values are %lu %lf", param_id.c_str(),
+                                                        param.response.value.integer,
+                                                        param.response.value.real);
+        intVal = param.response.value.integer;
+        realVal= param.response.value.real;
+    }
+    else {
+//        ROS_ERROR("Failed to get param %s info", param_id);
+        return false;
+    }
+
+    return true;
+}
+
+bool WaypointControl::setParam(std::string param_id, int intVal, double realVal)
+{
+    ros::ServiceClient setParamService = n.serviceClient<mavros_msgs::ParamSet>("/mavros/param/set");
+    mavros_msgs::ParamSet param;
+    param.request.param_id = param_id; //"SYSID_MYGCS"
+    param.request.value.integer = intVal;
+    param.request.value.real = realVal;
+    if (setParamService.call(param)) {
+        ROS_INFO("param %s: set", param_id.c_str());
+    } else {
+        ROS_ERROR("Failed to call service SYSIS_MYGCS");
+        return false;
+    }
+    return true;
+}
+
+bool WaypointControl::setStreamRate(unsigned char stream_id, unsigned short message_rate, bool onoff)
+{
+    client = n.serviceClient<mavros_msgs::StreamRate>("/mavros/set_stream_rate");
+    mavros_msgs::StreamRate srv;
+    srv.request.stream_id = stream_id;
+    srv.request.message_rate = message_rate;
+    srv.request.on_off = static_cast<unsigned char>(onoff);
+
+    if (client.call(srv)) {
+        ROS_INFO("StreamRate set OK");
+    } else {
+        ROS_ERROR("Failed to call StreamRate service");
+        return false;
+    }
+    return true;
+}
+
+bool WaypointControl::cmdVel(double lx, double ly, double lz, double ax, double ay, double az)
+{
+    pub = n.advertise<geometry_msgs::Twist>("/mavros/setpoint_velocity/cmd_vel_unstamped", 10);
+    geometry_msgs::Twist s;
+
+    s.linear.x = lx;
+    s.linear.y = ly;
+    s.linear.z = lz;
+    s.angular.x = ax;
+    s.angular.y = ay;
+    s.angular.z = az;
+    ROS_INFO("Sending twist messages linear: %f %f %f angular: %f %f %f ", lx,ly,lz,ax,ay,az);
+
+    pub.publish(s);
+
+    return true;
 }
