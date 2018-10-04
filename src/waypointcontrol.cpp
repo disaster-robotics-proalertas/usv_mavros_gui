@@ -7,16 +7,6 @@ unsigned short servoStopped [] ={1550, 0, 1200, 0, 0, 0, 0, 0};
 
 std::vector<mavros_msgs::Waypoint> globalWaypoints;
 
-void waypointCallback(const mavros_msgs::WaypointList& wps)
-{
-    //    waypoints = wps;
-    ROS_INFO("Current Waypoint %d ", wps.current_seq);
-    globalWaypoints = wps.waypoints;
-    for(int i=0;i<wps.waypoints.size();++i)
-    {
-        ROS_INFO("Waypoint %d received: lat %g, long %g", i, wps.waypoints[i].x_lat, wps.waypoints[i].y_long);
-    }
-}
 
 WaypointControl::WaypointControl() :
     n(),
@@ -26,7 +16,7 @@ WaypointControl::WaypointControl() :
     waypoints(globalWaypoints),
     servos(servoStopped, servoStopped + sizeof(servoStopped) / sizeof(servoStopped[0]))
 {
-    sub = n.subscribe("/mavros/mission/waypoints", 1, waypointCallback);
+    sub = n.subscribe("/mavros/mission/waypoints", 1, &WaypointControl::waypointCallback, this);
 }
 
 bool WaypointControl::clear()
@@ -328,26 +318,123 @@ bool WaypointControl::setHome(double latitude, double longitude)
     return setHomeService.response.success;
 }
 
-bool WaypointControl::setActuators(std::vector<unsigned short> values)
+bool WaypointControl::overrideRCChannels(std::vector<RCManualOverride> values)
 {
-	mavros_msgs::OverrideRCIn s;
-	mavros_msgs::ManualControl c;	
-	c.x = 10;
-	c.y = 10;
-	c.z = 0;
-	c.r = 10;
-	for(int i = 0; i< values.size(); ++i)
-	{
-		ROS_INFO("Old servo values");//"[%d]=%hu", i, values[i]);
-		s.channels[i] = values[i];
+    // Check if number of channels is correct
+    int numChannels=8;
+    mavros_msgs::OverrideRCIn s;
 
-		
-	}
+    if(values.size() > 0 && values.size() < 8){
+        ROS_WARN("RC Control config will occur only over %d channels", static_cast<int>(values.size()));
+        numChannels=values.size();
+    }
+    else if(values.size() > 0 && values.size() <= 8){
+        // Send override command
+        for(int i = 0; i< numChannels; ++i)
+            s.channels[i] = values[i];
 
-	pub = n.advertise<mavros_msgs::ManualControl>("/mavros/manual_control/send", 1000);
-	pub.publish(c);
-	pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 1000);
-	pub.publish(s);
-	
-	return true;
+        pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 1000);
+        pub.publish(s);
+    }
+    else{
+        ROS_ERROR("Number of servos is incprrect %d", static_cast<int>(values.size()));
+        return false;
+    }
+    //    mavros_msgs::ManualControl c;
+    //    c.x = 10;
+    //    c.y = 10;
+    //    c.z = 0;
+    //    c.r = 10;
+
+    //    pub = n.advertise<mavros_msgs::ManualControl>("/mavros/manual_control/send", 1000);
+    //    pub.publish(c);
+
+    return true;
+}
+
+bool WaypointControl::takeOverRC(){
+    return overrideRCChannels(std::vector<RCManualOverride>(8,RCManualOverride::CHAN_ARREST));
+}
+
+bool WaypointControl::giveBackRC(){
+    return overrideRCChannels(std::vector<RCManualOverride>(8,RCManualOverride::CHAN_RELEASE));
+}
+
+bool WaypointControl::setMode(unsigned char mode, std::string custom)
+{   // Base Modes
+    //unsigned char MAV_MODE_PREFLIGHT = 0
+    //unsigned char MAV_MODE_STABILIZE_DISARMED = 80
+    //unsigned char MAV_MODE_STABILIZE_ARMED = 208
+    //unsigned char MAV_MODE_MANUAL_DISARMED = 64
+    //unsigned char MAV_MODE_MANUAL_ARMED = 192
+    //unsigned char MAV_MODE_GUIDED_DISARMED = 88
+    //unsigned char MAV_MODE_GUIDED_ARMED = 216
+    //unsigned char MAV_MODE_AUTO_DISARMED = 92
+    //unsigned char MAV_MODE_AUTO_ARMED = 220
+    //unsigned char MAV_MODE_TEST_DISARMED = 66
+    //unsigned char MAV_MODE_TEST_ARMED = 194
+
+    // Custom Modes are strings which are specific to each unmanned vehicle
+    // http://wiki.ros.org/mavros/CustomModes
+    //ex: APM:Rover
+    //Numeric	String
+    //0		MANUAL
+    //2		LEARNING
+    //3		STEERING
+    //4		HOLD
+    //10	AUTO
+    //11	RTL
+    //15	GUIDED
+    //16	INITIALISING
+
+    client = n.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
+    mavros_msgs::SetMode setModeService;
+    if(!custom.empty())
+    {
+        setModeService.request.base_mode = 0;
+        setModeService.request.custom_mode = custom;
+    }
+    else
+        setModeService.request.base_mode = mode;
+
+    if (client.call(setModeService)) {
+        ROS_INFO("Send OK %d Value:", setModeService.response.mode_sent);
+    } else {
+        ROS_ERROR("Failed SetMode");
+        return false;
+    }
+    return setModeService.response.mode_sent;
+}
+
+void WaypointControl::waypointCallback(const mavros_msgs::WaypointList& wps)
+{
+    ROS_INFO("Current Waypoint %d ", wps.current_seq);
+    waypoints = wps.waypoints;
+    for(int i=0;i<waypoints.size();++i)
+        ROS_INFO("Waypoint %d received: lat %g, long %g", i, wps.waypoints[i].x_lat, wps.waypoints[i].y_long);
+}
+
+bool WaypointControl::setRCChannels(std::vector<unsigned char> values)
+{
+    // Check if number of channels is correct
+    int numChannels=8;
+    mavros_msgs::OverrideRCIn s;
+
+    if(values.size() > 0 && values.size() < 8){
+        ROS_WARN("RC Control values span only over %d channels", static_cast<int>(values.size()));
+        numChannels=values.size();
+    }
+    else if(values.size() > 0 && values.size() <= 8){
+        // Send override command
+        for(int i = 0; i< numChannels; ++i)
+            s.channels[i] = values[i];
+
+        pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 1000);
+        pub.publish(s);
+    }
+    else{
+        ROS_ERROR("Number of servos is incprrect %d", static_cast<int>(values.size()));
+        return false;
+    }
+
 }
