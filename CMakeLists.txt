@@ -22,7 +22,6 @@ find_package(Qt5Network REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
 mavros 
 mavros_msgs 
-mavros_extras 
 mavlink
 roscpp
 std_msgs

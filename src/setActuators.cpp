@@ -16,31 +16,23 @@ int main(int argc, char *argv[])
     // Setting parameter SYSID_MYCGS is required for override
     int integer = 0;
     double real = 0;
-    while(integer!=1 && real!=1.0)
+    while(integer!=1)
     {
-        ctl.setParam("SYSID_MYGCS",1, 1);
+        ctl.setParam("SYSID_MYGCS",1, 1.0f);
         ctl.getParam("SYSID_MYGCS", integer, real);
     }
-    //        while(integer!=1 && real!=1.0)
-    //        {
-    //            ctl.setParam("SYSID_THISMAV",1, 1);
-    //            ctl.getParam("SYSID_THISMAV", integer, real);
-    //        }
-    //        ctl.getParam("SYSID", integer, real);
-    //        ROS_INFO("SYSTEM_ID %d, %g", integer, real);
 
-    //        ctl.getParam("SYSID", integer, real);
-    //        ROS_INFO("COMPONENT_ID %d, %g", integer, real);
-
-
-
-    // Disabling Fence
     // Changing Mode
-    if(ctl.setMode(216)) // 220 auto armed // 192 manual armed // GUIDED_ARMED = 216
-        ROS_INFO("Set Mode Success");
-    else
-        ROS_ERROR("Set Mode FAILURE");
+    for(int m=0;m<11;++m)
+    {
+	if(ctl.setMode(ros_modes[m])) // 220 auto armed // 192 manual armed // GUIDED_ARMED = 216
+            ROS_INFO("Set Mode Success");
+    	else
+            ROS_ERROR("Set Mode FAILURE");
+	ros::spinOnce();
+    }
 
+    // Fence
     if(ctl.enableFence(0)) //  enable? (0=disable, 1=enable, 2=disable_floor_only)
         ROS_INFO("Fence disabled");
     else
@@ -52,7 +44,7 @@ int main(int argc, char *argv[])
     else
         ROS_ERROR("Guided Mode could not be enabled");
 
-    // Arming DOES NOT WORK
+    // Arming
     if(ctl.arming(false))
         ROS_INFO("Success: USV IS DISARMED");
     else
@@ -63,7 +55,7 @@ int main(int argc, char *argv[])
     else
         ROS_ERROR("FAILURE: USV IS NOT SARMED OR WAS ALREADY ARMED BEFORE");
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
+    ros::spinOnce();
     for(int i = 0; i< 100;++i)
     {
         ctl.setYawSpeed(3000, 0.5);
@@ -76,90 +68,63 @@ int main(int argc, char *argv[])
 //    // DEPLOY VESSEL DOES WORK
 //    ctl.deployVessel(-30.0612, -51.1747, 20);
 
-//    // SetRCChannel
+    // SetRCChannel
 //    std::vector<unsigned short> vals(ctl.servos);
-//    //        ctl.setRCChannels(vals);
-//    ros::spinOnce();
 //    ctl.takeOverRC();
 //    ros::spinOnce();
 
-//    for(int i=0;i<100;++i)
-//    {
+//    for(int i=0;i<200;++i)
+//   {
 //        ctl.setRCChannels(vals);
-
 //        vals[2]+=3;
 //        vals[0]+=3;
 //        std::this_thread::sleep_for(std::chrono::milliseconds(20));
 //        ros::spinOnce();
 //    }
-//    for(int i=0;i<100;++i)
+//    for(int i=0;i<200;++i)
 //    {
-//        vals[2]-=3;
-//        vals[0]-=3;
-//        ctl.setRCChannels(vals);
-//        std::this_thread::sleep_for(std::chrono::milliseconds(20));
-//        ros::spinOnce();
-//    }
+ //       vals[2]-=3;
+ //       vals[0]-=3;
+ //       ctl.setRCChannels(vals);
+ //       std::this_thread::sleep_for(std::chrono::milliseconds(20));
+ //       ros::spinOnce();
+ //  }
 
-//    // Manual Control
-//    ctl.manualControl(0,0,0,0,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(0,0,0,0,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(1,1,1,1,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(1,1,1,1,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(500,500,500,500,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(500,500,500,500,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(1000,1000,1000,1000,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(1000,1000,1000,1000,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(2000,2000,2000,2000,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    ctl.manualControl(2000,2000,2000,2000,0);
-//    ros::spinOnce();
-//    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    float x=0, y=0, z=0, r=0;
-//    unsigned short buttons = 0;
-//    for(int i=0;i<100;++i)
-//    {
-//        ctl.manualControl(x,y,z,r,buttons);
-//        r+=3;
-//        x+=3;
-//        y+=3;
-//        z+=3;
-//        ros::spinOnce();
-//        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    }
-//    for(int i=0;i<100;++i)
-//    {
-//        r-=3;
-//        x-=3;
-//        y-=3;
-//        z-=3;
-//        ctl.manualControl(x,y,z,r,buttons);
-//        ros::spinOnce();
-//        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-//    }
-
-//    // giving control back to RC
+    // giving control back to RC
 //    ctl.giveBackRC();
+//    ros::spinOnce();
+
+    // Manual Control
+    float x=0, y=0, z=0, r=0;
+    unsigned short buttons = 0;
+    for(int i=0;i<100;++i)
+    {
+        ctl.manualControl(x,y,z,r,buttons);
+        y+=10; // yaw
+        //z-=1; // thrust
+        ros::spinOnce();
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    for(int i=0;i<201;++i)
+    {
+        y-=10; // yaw
+        //z-=1; // thrust
+        ctl.manualControl(x,y,z,r,buttons);
+        ros::spinOnce();
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    for(int i=0;i<101;++i)
+    {
+        y+=10; // yaw
+        //z-=1; // thrust
+        ctl.manualControl(x,y,z,r,buttons);
+        ros::spinOnce();
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
 
 
-//    //   Twist
+
+    //   Twist
 //    double lx = 0.00;
 //    double ly = 0.00;
 //    double lz = 0.00;
@@ -175,7 +140,7 @@ int main(int argc, char *argv[])
 //        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 //    }
 //    for(int i=0;i<100;++i)
-//    {
+//   {
 //        lx-=0.005;
 //        ly-=0.005;
 //        lz-=0.005;
@@ -183,13 +148,20 @@ int main(int argc, char *argv[])
 //        ctl.cmdVel(lx,ly,lz, 0,0,0);
 //        ctl.cmd_vel(lx,ly,lz, 0,0,0);
 //        ros::spinOnce();
-//        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+//        std::this_thread::sleep_for(std::chrono::milliseconds(20));
 //    }
 
     // Changing to MANUAL mode disarmed
-    ctl.setMode(0);
-    ctl.setParam("SYSID_MYGCS", 0, 0.0f);
-    ctl.getParam("SYSID_MYGCS", integer, real);
+    ctl.setMode(192);
+    integer = 1;
+    real = 1.0f;
+    while(integer!=0 && real!=0.0)
+    {
+        ctl.setParam("SYSID_MYGCS",0, 0.0);
+        ctl.getParam("SYSID_MYGCS", integer, real);
+    }
+    ros::spinOnce();
+    ctl.giveBackRC();
     ros::spinOnce();
     //    }
     return 0;

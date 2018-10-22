@@ -350,17 +350,17 @@ bool WaypointControl::overrideRCChannels(std::vector<RCManualOverride> values)
         ROS_WARN("RC Control config will occur only over %d channels", static_cast<int>(values.size()));
         numChannels=values.size();
     }
-    else if(values.size() > 0 && values.size() <= 8){
+    if(values.size() > 0 && values.size() <= 8){
         // Send override command
         for(int i = 0; i< numChannels; ++i)
             s.channels[i] = static_cast<unsigned short>(values[i]);
 
         pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 10);
         pub.publish(s);
-        ROS_INFO("Override/Relase sent %hu", s.channels[0]);
+        ROS_INFO("Override/Release sent %hu with value ", s.channels[0]);
     }
     else{
-        ROS_ERROR("Number of servos is incprrect %d", static_cast<int>(values.size()));
+        ROS_ERROR("Number of servos is incorrect %d", static_cast<int>(values.size()));
         return false;
     }
     return true;
@@ -768,9 +768,9 @@ bool WaypointControl::setGuidedMode(bool val)
 bool WaypointControl::setYawSpeed(float angleDeg, float normalized_yaw_speed=0.5)
 {
     // MAV_CMD_NAV_SET_YAW_SPEED: Sets a desired vehicle turn angle and speed change
-    client = n.serviceClient<mavros_msgs::CommandLong>("/mavros/cmd/command");
-    mavros_msgs::CommandLong yawService;
-    yawService.request.confirmation = true;
+    client = n.serviceClient<mavros_msgs::CommandInt>("/mavros/cmd/command_int");
+    mavros_msgs::CommandInt yawService;
+    yawService.request.frame = 1;
     yawService.request.command = 213; // MAV_CMD_NAV_SET_YAW_SPEED
     yawService.request.param1 = angleDeg; //yaw angle to adjust steering by in centidegress 3000
     // set speed
