@@ -7,16 +7,38 @@ unsigned short servoStopped [] ={1550, 0, 1200, 0, 0, 0, 0, 0};
 
 std::vector<mavros_msgs::Waypoint> globalWaypoints;
 
+int seq = 0;
 
 WaypointControl::WaypointControl() :
     n(),
     client(),
-    sub(),
+    subWps(),
+    subHome(),
     pub(),
     waypoints(globalWaypoints),
     servos(servoStopped, servoStopped + sizeof(servoStopped) / sizeof(servoStopped[0]))
 {
-    sub = n.subscribe("/mavros/mission/waypoints", 1, &WaypointControl::waypointCallback, this);
+    subWps = n.subscribe("/mavros/mission/waypoints", 1, &WaypointControl::waypointCallback, this);
+    subHome = n.subscribe("/mavros/home_position/home", 1, &WaypointControl::homePositionCallback, this);
+
+}
+
+/////////////////////////////////////////////////
+/// Callbacks                                 ///
+/////////////////////////////////////////////////
+void WaypointControl::homePositionCallback(const mavros_msgs::HomePosition& h)
+{
+    home = h;
+    ROS_INFO("Current Home Position: latitude %g, longitude %g", h.geo.latitude, h.geo.longitude);
+    ROS_INFO("Current Home Position: x %g, y %g, z %g", h.position.x, h.position.y, h.position.z);
+}
+
+void WaypointControl::waypointCallback(const mavros_msgs::WaypointList& wps)
+{
+    ROS_INFO("Current Waypoint %d ", wps.current_seq);
+    waypoints = wps.waypoints;
+    for(int i=0;i<waypoints.size();++i)
+        ROS_INFO("Waypoint %d received: lat %g, long %g", i, wps.waypoints[i].x_lat, wps.waypoints[i].y_long);
 }
 
 bool WaypointControl::clear()
@@ -335,21 +357,12 @@ bool WaypointControl::overrideRCChannels(std::vector<RCManualOverride> values)
 
         pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 10);
         pub.publish(s);
-        ROS_INFO("Override/Relase sent");
+        ROS_INFO("Override/Relase sent %hu", s.channels[0]);
     }
     else{
         ROS_ERROR("Number of servos is incprrect %d", static_cast<int>(values.size()));
         return false;
     }
-    //    mavros_msgs::ManualControl c;
-    //    c.x = 10;
-    //    c.y = 10;
-    //    c.z = 0;
-    //    c.r = 10;
-
-    //    pub = n.advertise<mavros_msgs::ManualControl>("/mavros/manual_control/send", 1000);
-    //    pub.publish(c);
-
     return true;
 }
 
@@ -388,32 +401,45 @@ bool WaypointControl::setMode(unsigned char mode, std::string custom)
     //15	GUIDED
     //16	INITIALISING
 
+//    Value	Meaning
+//      0	Manual
+//      1	Acro
+//      3	Steering
+//      4	Hold
+//      5	Loiter
+//      6	Follow
+//      7	Simple
+//      10	Auto
+//      11	RTL
+//      12	SmartRTL
+//      15	Guided
+
     client = n.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
     mavros_msgs::SetMode setModeService;
+
     if(!custom.empty())
     {
         setModeService.request.base_mode = 0;
         setModeService.request.custom_mode = custom;
     }
     else
+    {
+        setModeService.request.base_mode = 0;
         setModeService.request.base_mode = mode;
-
+    }
     if (client.call(setModeService)) {
-        ROS_INFO("SetMode OK %d Value:", setModeService.response.mode_sent);
+        if(!setModeService.response.mode_sent)
+            ROS_ERROR("SetMode called but failed: %d", setModeService.response.mode_sent);
+         else
+            ROS_INFO("Mode set to: %d %s",mode, custom.c_str());
     } else {
-        ROS_ERROR("Failed to SetMode");
+        ROS_ERROR("Failed call SetMode");
         return false;
     }
     return setModeService.response.mode_sent;
 }
 
-void WaypointControl::waypointCallback(const mavros_msgs::WaypointList& wps)
-{
-    ROS_INFO("Current Waypoint %d ", wps.current_seq);
-    waypoints = wps.waypoints;
-    for(int i=0;i<waypoints.size();++i)
-        ROS_INFO("Waypoint %d received: lat %g, long %g", i, wps.waypoints[i].x_lat, wps.waypoints[i].y_long);
-}
+
 
 bool WaypointControl::setRCChannels(std::vector<unsigned short> values)
 {
@@ -430,7 +456,7 @@ bool WaypointControl::setRCChannels(std::vector<unsigned short> values)
         for(int i = 0; i< numChannels; ++i)
             s.channels[i] = values[i];
 
-        pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 1000);
+        pub = n.advertise<mavros_msgs::OverrideRCIn>("/mavros/rc/override", 3);
         pub.publish(s);
         ROS_INFO("Data sent to RC Channel[0]=%hu Channel[2]=%hu", values[0], values[2]);
 
@@ -474,7 +500,7 @@ bool WaypointControl::setParam(std::string param_id, int intVal, double realVal)
     if (setParamService.call(param)) {
         ROS_INFO("param %s: set", param_id.c_str());
     } else {
-        ROS_ERROR("Failed to call service SYSIS_MYGCS");
+        ROS_ERROR("Failed to call service %s", param_id.c_str());
         return false;
     }
     return true;
@@ -513,4 +539,258 @@ bool WaypointControl::cmdVel(double lx, double ly, double lz, double ax, double 
     pub.publish(s);
 
     return true;
+}
+
+bool WaypointControl::manualControl(float x, float y, float z, float r, unsigned short buttons)
+{
+    pub = n.advertise<mavros_msgs::ManualControl>("/mavros/manual_control/send",10);
+    mavros_msgs::ManualControl mc;
+    std_msgs::Header h;
+//    seq++;
+//    h.seq=seq;
+    mc.header.stamp = ros::Time::now();
+    mc.header.frame_id=1;
+    mc.x = x;
+    mc.y = y;
+    mc.z = z;
+    mc.r = r;
+    mc.buttons=buttons;
+    ROS_INFO("Sending manual control messages: x=%f y=%f x=%f r=%f buttons=%hu ", x,y,z,r,buttons);
+
+    pub.publish(mc);
+
+    return true;
+}
+
+
+bool WaypointControl::thrust(float t)
+{
+    pub = n.advertise<mavros_msgs::Thrust>("/mavros/setpoint_attitude/thrust",10);
+    mavros_msgs::Thrust tm;
+
+    // fill header
+    tm.header.stamp = ros::Time::now();
+    tm.header.frame_id = 1;
+
+    //fill thrust vale 0~1
+    tm.thrust = t;
+    ROS_INFO("Sending thrust=%f ", t);
+    pub.publish(tm);
+
+    return true;
+}
+
+bool WaypointControl::cmd_vel(double lx, double ly, double lz, double ax, double ay, double az)
+{
+    pub = n.advertise<geometry_msgs::TwistStamped>("/mavros/setpoint_attitude/cmd_vel",10);
+    geometry_msgs::TwistStamped tm;
+
+    // fill header
+    tm.header.stamp = ros::Time::now();
+    tm.header.frame_id = 1;
+
+    tm.twist.linear.x = lx;
+    tm.twist.linear.y = ly;
+    tm.twist.linear.z = lz;
+    tm.twist.angular.x = ax;
+    tm.twist.angular.y = ay;
+    tm.twist.angular.z = az;
+    ROS_INFO("Sending twist messages linear: %f %f %f angular: %f %f %f ", lx,ly,lz,ax,ay,az);
+
+    pub.publish(tm);
+
+    return true;
+}
+
+bool WaypointControl::deployVessel(float latitude, float longitude, float altitude)
+{
+    // Clear waypoints
+    client = n.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
+    mavros_msgs::CommandTOL tolService;
+
+    tolService.request.latitude = latitude;
+    tolService.request.longitude = longitude;
+    tolService.request.altitude = altitude;
+    tolService.request.yaw = std::numeric_limits<double>::quiet_NaN();
+    tolService.request.min_pitch = 0;
+
+    if (client.call(tolService))
+    {
+        if(tolService.response.success)
+            ROS_INFO("Sent takeoff");
+        else
+            ROS_ERROR("Takeoff was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call takeoff service");
+        return false;
+    }
+
+    return tolService.response.success;
+}
+
+bool WaypointControl::collectVessel(float latitude, float longitude, float altitude)
+{
+    // Clear waypoints
+    client = n.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land");
+    mavros_msgs::CommandTOL tolService;
+
+    tolService.request.latitude = latitude;
+    tolService.request.longitude = longitude;
+    tolService.request.altitude = altitude;
+    tolService.request.yaw = std::numeric_limits<double>::quiet_NaN();
+    tolService.request.min_pitch = 0;
+
+    if (client.call(tolService))
+    {
+        if(tolService.response.success)
+            ROS_INFO("Sent land");
+        else
+            ROS_ERROR("Land was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call land service");
+        return false;
+    }
+
+    return tolService.response.success;
+}
+
+bool WaypointControl::arming(bool setArmed)
+{
+    // arm/disarm boat
+    client = n.serviceClient<mavros_msgs::CommandBool>("/mavros/cmd/arming");
+    mavros_msgs::CommandBool armService;
+
+    armService.request.value = setArmed;
+
+
+    if (client.call(armService))
+    {
+        if(armService.response.success)
+            ROS_INFO("Commanded USV to arm");
+        else
+            ROS_ERROR("Arming was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call arming service");
+        return false;
+    }
+    return armService.response.success;
+}
+
+bool WaypointControl::startEngine(float start, float coldStart)
+{
+    // start engine
+    client = n.serviceClient<mavros_msgs::CommandInt>("/mavros/cmd/command_int");
+    mavros_msgs::CommandInt startService;
+
+    startService.request.frame = 1;
+    startService.request.command = 223;
+    startService.request.param1 = start;
+    startService.request.param2 = coldStart;
+    startService.request.param3 = 0;
+    startService.request.param4 = 0;
+
+    if (client.call(startService))
+    {
+        if(startService.response.success)
+            ROS_INFO("Commanded USV to start engine");
+        else
+            ROS_ERROR("Engine start was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call start engine service");
+        return false;
+    }
+    return startService.response.success;
+}
+
+bool WaypointControl::enableFence(float fenceEnable)
+{
+    // geo fence
+    //  enable? (0=disable, 1=enable, 2=disable_floor_only)
+    client = n.serviceClient<mavros_msgs::CommandInt>("/mavros/cmd/command_int");
+    mavros_msgs::CommandInt fenceService;
+
+    fenceService.request.frame = 1;
+    fenceService.request.command = 207;
+    fenceService.request.param1 = fenceEnable;
+
+    if (client.call(fenceService))
+    {
+        if(fenceService.response.success)
+            ROS_INFO("Commanded USV to toogle fence service");
+        else
+            ROS_ERROR("Engine start was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call fence service");
+        return false;
+    }
+    return fenceService.response.success;
+}
+
+bool WaypointControl::setGuidedMode(bool val)
+{
+    client = n.serviceClient<mavros_msgs::CommandInt>("/mavros/cmd/command");
+    mavros_msgs::CommandInt guidedService;
+
+    guidedService.request.frame = 1;
+    guidedService.request.command = 92;
+    if(val)
+        guidedService.request.param1 = 1.0; // > 0.5 enable
+    else
+        guidedService.request.param1 = 0.0; // <= 0.5 disable
+
+
+    if (client.call(guidedService))
+    {
+        if(guidedService.response.success)
+            ROS_INFO("Commanded USV to toogle GUIDED MODE");
+        else
+            ROS_ERROR("GUIDED MODE set service was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call GUIDED MODE set service");
+        return false;
+    }
+    return guidedService.response.success;
+}
+
+
+bool WaypointControl::setYawSpeed(float angleDeg, float normalized_yaw_speed=0.5)
+{
+    // MAV_CMD_NAV_SET_YAW_SPEED: Sets a desired vehicle turn angle and speed change
+    client = n.serviceClient<mavros_msgs::CommandLong>("/mavros/cmd/command");
+    mavros_msgs::CommandLong yawService;
+    yawService.request.confirmation = true;
+    yawService.request.command = 213; // MAV_CMD_NAV_SET_YAW_SPEED
+    yawService.request.param1 = angleDeg; //yaw angle to adjust steering by in centidegress 3000
+    // set speed
+    if(normalized_yaw_speed < 0.0 || normalized_yaw_speed >1.0)
+        yawService.request.param2 = 0.5; // > 0.5 enable
+    else
+        yawService.request.param2 = normalized_yaw_speed; // > 0.5 enable
+
+
+    if (client.call(yawService))
+    {
+        if(yawService.response.success)
+            ROS_INFO("Commanded USV to yaw");
+        else
+            ROS_ERROR("Yaw service was called, but returned false");
+    }
+    else
+    {
+        ROS_ERROR("Failed to call yaw service");
+        return false;
+    }
+    return yawService.response.success;
 }
