@@ -17,13 +17,13 @@ int main(int argc, char *argv[])
     /// processing input parameters
     if(argc == 1 || std::string(argv[1])==std::string("-h") || std::string(argv[1])==std::string("--help"))
     {
-        ROS_INFO("Usage: rosrun usv_mavros_gui_torque <time_sec> <pwm_val>");
+        ROS_INFO("Usage: rosrun usv_mavros_gui_nogui_torque <time_sec> <pwm_val>");
         return 0;
     }
     if(argc < 3 || argc > 3)
     {
         ROS_ERROR("Error: torque test requires 2 input parameters.");
-        ROS_INFO("Usage: rosrun usv_mavros_gui_torque <time_sec> <pwm_val>");
+        ROS_INFO("Usage: rosrun usv_mavros_gui_nogui_torque <time_sec> <pwm_val>");
         return 1;
     }
     // Parsing parameters
@@ -32,14 +32,14 @@ int main(int argc, char *argv[])
         duration = std::stoi(argv[1], nullptr, 0);
     } catch (std::invalid_argument& ia) {
         ROS_ERROR("Set experiment duration in seconds properly in argv[1]");
-        ROS_INFO("Usage: rosrun usv_mavros_gui_torque <time_sec> <pwm_val>");
+        ROS_INFO("Usage: rosrun usv_mavros_gui_nogui_torque <time_sec> <pwm_val>");
         return 1;
     }
     try {
         pwm = std::stoi(argv[2], nullptr, 0);
     } catch (std::invalid_argument& ia) {
         ROS_ERROR("Set PWM thruster value properly in argv[2]");
-        ROS_INFO("Usage: rosrun usv_mavros_gui_torque <time_sec> <pwm_val>");
+        ROS_INFO("Usage: rosrun usv_mavros_gui_nogui_torque <time_sec> <pwm_val>");
         return 1;
     }
     // Quit if experiment time is greater than 60s
@@ -92,9 +92,9 @@ int main(int argc, char *argv[])
     {
         // Lap start time
         auto lapStart = std::chrono::high_resolution_clock::now();
-//        // set control values
-//         vals[2]=1550; // thrust
-        vals[0]=1515; // yaw
+        // set control values
+        vals[2]=pwm; // thrust
+        //vals[0]=1900; // yaw
         ctl.setRCChannels(vals);
         ros::spinOnce();
         // get current time

@@ -7,17 +7,12 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-set(Qt5Core_DIR ~/Qt/5.9.1/gcc_64/lib/cmake/Qt5Core)
+
 find_package(Qt5Core REQUIRED)
-set(Qt5Quick_DIR ~/Qt/5.9.1/gcc_64/lib/cmake/Qt5Quick)
 find_package(Qt5Quick REQUIRED)
-set(Qt5Qml_DIR ~/Qt/5.9.1/gcc_64/lib/cmake/Qt5Qml)
 find_package(Qt5Qml REQUIRED)
-set(Qt5Location_DIR ~/Qt/5.9.1/gcc_64/lib/cmake/Qt5Location)
 find_package(Qt5Location REQUIRED)
-set(Qt5Poitioning_DIR ~/Qt/5.9.1/gcc_64/lib/cmake/Qt5Positioning)
 find_package(Qt5Positioning REQUIRED)
-set(Qt5Network_DIR ~/Qt/5.9.1/gcc_64/lib/cmake/Qt5Network)
 find_package(Qt5Network REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
 mavros 
@@ -81,26 +76,17 @@ qt5_use_modules(${PROJECT_NAME}_node Core Qml Quick Location Positioning)
 
 ### Declare the C++ Qt5 NO GUI executable
 add_executable(${PROJECT_NAME}_nogui_node src/sendwaypoints_nogui.cpp src/waypointcontrol.cpp)
-### Declare the C++ Qt5 NO GUI executable
-add_executable(${PROJECT_NAME}_nogui_servo src/setActuators.cpp src/waypointcontrol.cpp)
+add_executable(${PROJECT_NAME}_nogui_servo src/setActuators.cpp       src/waypointcontrol.cpp)
+add_executable(${PROJECT_NAME}_nogui_torque src/usvSpeedTest.cpp      src/waypointcontrol.cpp)
 
 ### Declare the waw ROS C++ library
 add_library(${PROJECT_NAME} src/waypointcontrol.cpp)
 
-target_link_libraries(${PROJECT_NAME}_node 
-	${catkin_LIBRARIES} 
-)
-target_link_libraries(${PROJECT_NAME}_nogui_node 
-	${catkin_LIBRARIES} 
-)
-
-target_link_libraries(${PROJECT_NAME}_nogui_servo 
-	${catkin_LIBRARIES} 
-)
-
-target_link_libraries(${PROJECT_NAME} 
-	${catkin_LIBRARIES} 
-)
+target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_nogui_node ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_nogui_servo ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_nogui_torque ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 #############
 ## Install ##
