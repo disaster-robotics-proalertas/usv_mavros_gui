@@ -78,6 +78,7 @@ qt5_use_modules(${PROJECT_NAME}_node Core Qml Quick Location Positioning)
 add_executable(${PROJECT_NAME}_nogui_node src/sendwaypoints_nogui.cpp src/waypointcontrol.cpp)
 add_executable(${PROJECT_NAME}_nogui_servo src/setActuators.cpp       src/waypointcontrol.cpp)
 add_executable(${PROJECT_NAME}_nogui_torque src/usvSpeedTest.cpp      src/waypointcontrol.cpp)
+add_executable(${PROJECT_NAME}_nogui_cmdvel src/usvCommandVel.cpp     src/waypointcontrol.cpp)
 
 ### Declare the waw ROS C++ library
 add_library(${PROJECT_NAME} src/waypointcontrol.cpp)
@@ -86,6 +87,7 @@ target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_nogui_node ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_nogui_servo ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME}_nogui_torque ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_nogui_cmdvel ${catkin_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 #############
